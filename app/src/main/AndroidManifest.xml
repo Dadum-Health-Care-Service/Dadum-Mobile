@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--    HealthConnect의 심박수 데이터에 접근할 수 있는 권한-->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
+    <!--    걸음수 데이터에 접근할 수 있는 권한-->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.WRITE_STEPS" />
+    <!--    전체소모칼로리 데이터에 접근할 수 있는 권한-->
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED" />
+    <!--    오늘 걸은 거리 데이터에 접근할 수 있는 권한-->
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
+    <!--    전체소모칼로리 데이터에 접근할 수 있는 권한-->
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
+    <!--    수면기록에 접근할 수 있는 권한   -->
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.WRITE_SLEEP" />
+
+    <!--    나중에 서버통신을 위해 인터넷 권한도 설정(스프링서버로 HTTP통신하기 위함)-->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Dadum"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Dadum">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name=".AndroidURationaleActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+</manifest>
