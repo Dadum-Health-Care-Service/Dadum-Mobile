@@ -1,3 +1,7 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
 # 프로젝트 관리 파일
 .gradle
 /local.properties
