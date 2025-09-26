@@ -2,8 +2,9 @@
 
 ### 안드로이드 스튜디오 다운로드 -> 해당 프로젝트 실행 
 ### 프로젝트 실행 시킨 후 run하기 전 가장 먼저 확인 해야할 것 
-## !!! 프로젝트 루트의 local.properties에서 네트워크의 ip주소로 바꾸기 !!!
-
+## !!! 프로젝트 루트의 local.properties에서 server_ip_address를 내가 지금 연결된 네트워크의 ip로 바꾸기 !!!
+### 만약 local.properties가 없다면 -> File > Project Structure > SDK Location 을 통해서 SDK경로를 설정하면 자동으로 생성된다
+### 자동생성된 local.properties파일에는 server_ip_address가 없을 것이므로 sdk.dir 밑에 server_ip_address=000.000.0.0 형식으로 ip주소를 추가하기
 - - - - - 
 
 ## <프로젝트 핸드폰에서 실행시키는 방법> 
@@ -16,7 +17,7 @@
 5. 만약 medium phone api ... 등이 뜬다면 핸드폰과 연결되지 않은것이므로 실행x!
 7. 제대로 연결되었다면 run버튼을 눌러 'app'을 run 시킨다
 8. 프로젝트 빌드가 끝난 후 앱이 자동으로 핸드폰에 설치, 실행된다
-9. 만약 코드를 수정 했다면 다시 run버튼을 눌러 실행시킬것 (RetrofitClient의 BASE_URL상수는 네트워크가 바뀔때마다 바꿔주어야한다)
+9. 만약 코드를 수정 했다면 다시 run버튼을 눌러 실행시킬것 (local.properties의 server_ip_address는 네트워크가 바뀔때마다 바꿔주어야한다)
 
 - - - - -
 
