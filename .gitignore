@@ -1,0 +1,16 @@
+# 프로젝트 관리 파일
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+build/
+app/build/
+app/.cxx/
+
+# Android Studio에서 생성된 기타 파일
+captures/
+.externalNativeBuild/
+.navigation/
+*.iml
+*.iws
+*.ipr

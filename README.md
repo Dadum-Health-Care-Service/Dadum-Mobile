@@ -2,7 +2,7 @@
 
 ### 안드로이드 스튜디오 다운로드 -> 해당 프로젝트 실행 
 ### 프로젝트 실행 시킨 후 run하기 전 가장 먼저 확인 해야할 것 
-## !!! com.example.dadum 아래의 network폴더안의 RetrofitClient.kt 파일 내의 BASE_URL 주소를 내가 지금 접속한 네트워크의 ip주소로 바꾸기 !!!
+## !!! 프로젝트 루트의 local.properties에서 네트워크의 ip주소로 바꾸기 !!!
 
 - - - - - 
 
