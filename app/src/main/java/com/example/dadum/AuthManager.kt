@@ -22,6 +22,12 @@ class AuthManager(private val context: Context) {
         }
     }
 
+    suspend fun clearAuthToken(){
+        context.dataStore.edit { preferences ->
+            preferences.remove(AUTH_TOKEN_KEY)
+        }
+    }
+
     val authToken: Flow<String?> = context.dataStore.data
         .map { preferences ->
             preferences[AUTH_TOKEN_KEY]
