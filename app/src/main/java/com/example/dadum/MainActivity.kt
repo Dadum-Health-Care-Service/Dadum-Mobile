@@ -96,7 +96,12 @@ class MainActivity : ComponentActivity() {
             //로그인 상태가 결정될때까지 로딩 화면 표시
             when (isLoggedIn) {
                 true -> {
-                    MainContent()
+                    MainContent(
+                        authManager = authManager,
+                        onLogoutSuccess = {
+                            isLoggedIn = false
+                        }
+                    )
                 }
 
                 false -> {
@@ -121,21 +126,15 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MainContent(){
+    fun MainContent(
+        authManager: AuthManager,
+        onLogoutSuccess: () -> Unit
+    ){
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
 
         LaunchedEffect(Unit) {
-            if (!healthConnectManager.isHealthConnectAvailable()) {
-                Log.d("HEALTH_SYNC", "헬스 커넥트 미지원 기기")
-                Toast.makeText(context, "헬스커넥트 앱을 지원하지 않는 기기입니다.", Toast.LENGTH_LONG).show()
-                return@LaunchedEffect
-            }
-            if (healthConnectManager.checkPermissionsAndRun(permissionLauncher)){
-                coroutineScope.launch {
-                    fetchAndSend()
-                }
-            }
+            healthConnectManager.checkPermissionsAndRun(permissionLauncher)
         }
 
         Column(
@@ -167,10 +166,34 @@ class MainActivity : ComponentActivity() {
             Text(text = "얕은 수면: ${lightSleepMinutes}분")
             Text(text = "심박수: ${if (heartRateBpm.isNotEmpty()) "${heartRateBpm.first().bpm.toInt()} bpm" else "데이터 없음"}")
             Button(onClick = {
-                // 버튼 클릭 시 fetchAndSend() 실행
-                permissionLauncher.launch(healthConnectManager.permissions)
+                //헬스커넥트 지원 여부 먼저 확인
+                if(!healthConnectManager.isHealthConnectAvailable()){
+                    Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
+                    Toast.makeText(context, "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.", Toast.LENGTH_LONG).show()
+                    return@Button
+                }
+                // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
+                coroutineScope.launch {
+                    if(healthConnectManager.checkPermissionsAndRun(permissionLauncher)){
+                        fetchAndSend()
+                    } else{
+                        //권한이 없다면 토스트 알림
+                        Toast.makeText(context, "헬스커넥트 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }) {
                 Text(text = "데이터 가져오기 및 서버 전송")
+            }
+            Button(onClick = {
+                coroutineScope.launch {
+                    authManager.clearAuthToken()
+                    withContext(Dispatchers.Main){
+                        Toast.makeText(context,"로그아웃 성공!", Toast.LENGTH_SHORT).show()
+                        onLogoutSuccess()
+                    }
+                }
+            }, modifier = Modifier.padding(top = 16.dp)) {
+                Text(text = "로그아웃")
             }
         }
     }
@@ -266,8 +289,16 @@ class MainActivity : ComponentActivity() {
 
                 if(response.isSuccessful){
                     Log.d("HEALTH_SYNC","데이터 서버 전송 성공")
+                    withContext(Dispatchers.Main){
+                        Toast.makeText(this@MainActivity, "전송 성공!", Toast.LENGTH_SHORT).show()
+                    }
                 }else{
                     Log.d("HEALTH_SYNC","데이터 서버 전송 실패:${response.code()} ${response.message()}")
+                    withContext(Dispatchers.Main){
+                        val errorBody = response.errorBody()?.string() ?:"알 수 없는 오류"
+                        Toast.makeText(this@MainActivity,"전송 실패: ${response.code()} ($errorBody)",
+                            Toast.LENGTH_LONG).show()
+                    }
                 }
             }else{
                 Log.d("HEALTH_SYNC","토큰이 없습니다")
@@ -277,6 +308,9 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             Log.e("HEALTH_SYNC", "에러 발생", e)
+            withContext(Dispatchers.Main){
+                Toast.makeText(this@MainActivity,"데이터 처리 또는 네트워크 오류", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
@@ -344,11 +378,13 @@ fun Login(
                                 authManager.saveAuthToken(loginResponse.accessToken)
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(context, "로그인 성공!", Toast.LENGTH_SHORT).show()
+                                    Log.d("HEALTH_SYNC","로그인 성공")
                                     onLoginSuccess()
                                 }
                             }else{
                                 withContext(Dispatchers.Main){
-                                    Toast.makeText(context,"로그인 실패: 서버 응답 오류", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context,"로그인 실패", Toast.LENGTH_LONG).show()
+                                    Log.d("HEALTH_SYNC","로그인 실패: 서버 응답 오류")
                                     isLoading = false
                                 }
                             }
@@ -356,13 +392,14 @@ fun Login(
                             //API호출 실패
                             withContext(Dispatchers.Main){
                                 val errorMessage = response.errorBody()?.string() ?:"알 수 없는 오류"
-                                Toast.makeText(context, "로그인 실패: $errorMessage", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "로그인 실패", Toast.LENGTH_LONG).show()
+                                Log.d("HEALTH_SYNC","로그인 실패: ${errorMessage}")
                                 isLoading=false
                             }
                         }
                     }catch (e: Exception){
                         withContext(Dispatchers.Main){
-                            Toast.makeText(context,"네트워크 오류: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context,"네트워크 오류", Toast.LENGTH_SHORT).show()
                             Log.d("HEALTH_SYNC","네트워크 오류: ${e.message}")
                             isLoading=false
                         }
