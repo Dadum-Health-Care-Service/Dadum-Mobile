@@ -44,6 +44,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import retrofit2.Response
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
 
@@ -63,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private var remSleepMinutes by mutableStateOf(0L)
     private var lightSleepMinutes by mutableStateOf(0L)
     private var heartRateBpm by mutableStateOf<List<HeartRateData>>(emptyList())
+    private var currentTime by mutableStateOf("데이터 전송 기록 없음")
 
     private val permissionLauncher =
         registerForActivityResult<Set<String>, Set<String>>(
@@ -165,6 +169,8 @@ class MainActivity : ComponentActivity() {
             Text(text = "렘 수면: ${remSleepMinutes}분")
             Text(text = "얕은 수면: ${lightSleepMinutes}분")
             Text(text = "심박수: ${if (heartRateBpm.isNotEmpty()) "${heartRateBpm.first().bpm.toInt()} bpm" else "데이터 없음"}")
+            // 전송 시간
+            Text(text="전송 시간: ${currentTime}")
             Button(onClick = {
                 //헬스커넥트 지원 여부 먼저 확인
                 if(!healthConnectManager.isHealthConnectAvailable()){
@@ -203,6 +209,11 @@ class MainActivity : ComponentActivity() {
         Log.d("HEALTH_SYNC", "fetchAndSend 실행됨")
 
         try {
+            //현재 시간 생성
+            val koreaZone = ZoneId.of("Asia/Seoul")
+            val nowKST = ZonedDateTime.now(koreaZone)
+            val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+            val currentTimeString = nowKST.format(formatter)
             //걸음수 데이터 읽기
             val stepRecords =healthConnectManager.readStepCounts()
             val stepData = stepRecords.map{it.count.toInt()} //itdms stepRecords리스트의 각각의 요소.it은 람다 함수에서 사용하는 기본 파라미터
@@ -267,6 +278,7 @@ class MainActivity : ComponentActivity() {
             Log.d("HEALTH_SYNC", "깊은 수면: $deepMinutes 분")
             Log.d("HEALTH_SYNC", "렘 수면: $remMinutes 분")
             Log.d("HEALTH_SYNC", "얕은 수면: $lightMinutes 분")
+            Log.d("HEALTH_SYNC","전송 시간:$currentTimeString")
 
             //서버 전송 로직
             val healthData = HealthData( //아레에서 HealthData 코틀린클래스를 정의함
@@ -278,7 +290,8 @@ class MainActivity : ComponentActivity() {
                 totalSleepMinutes = totalSleepInMinutes,
                 deepSleepMinutes = deepMinutes,
                 remSleepMinutes = remMinutes,
-                lightSleepMinutes = lightMinutes
+                lightSleepMinutes = lightMinutes,
+                currentTime = currentTimeString
             )
 
             val token = authManager.authToken.first()
@@ -325,7 +338,8 @@ data class HealthData(
     val totalSleepMinutes: Long,
     val deepSleepMinutes: Long,
     val remSleepMinutes: Long,
-    val lightSleepMinutes: Long
+    val lightSleepMinutes: Long,
+    val currentTime:String
 )
 
 @Composable
