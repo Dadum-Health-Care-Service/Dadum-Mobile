@@ -6,16 +6,37 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,9 +48,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -47,6 +70,102 @@ import retrofit2.Response
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+
+val DadumBlue = Color(0xFF4285F4)
+val RedHeart = Color(0xFFE53935)
+val PurpleSteps = Color(0xFF947DFF)
+val GreenCalorie = Color(0xFF66BB6A)
+val PinkCalorie = Color(0xFF3366FF)
+val BlueDistance = Color(0xFF3399FF)
+val InactiveTabColor = Color(0xFF1C1C1E)
+val DadumBackground = Color(0xFFE6f3FF)
+
+@Composable
+fun HealthDataCard(
+    title: String,
+    value: String,
+    unit: String,
+    valueColor: Color
+){
+    Card(
+        modifier = Modifier.fillMaxWidth().height(90.dp).padding(4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ){
+        Column(
+            modifier = Modifier.padding(12.dp).fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ){
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Text(text = title, style = MaterialTheme.typography.bodyLarge.copy(color = Color.Black))
+            }
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        color = valueColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp
+                    ),
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color.Gray,
+                        fontSize = 20.sp
+                    ),
+                    modifier = Modifier.padding(8.dp, top = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DadumHeader(onLogout: () -> Unit){
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(16.dp, top = 30.dp, end = 16.dp, bottom = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 24.dp)
+            ) {
+                Image(
+                    painter = painterResource(id=R.drawable.ic_dadum_logo),
+                    contentDescription = "다듬 로고",
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "다듬",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = DadumBlue
+                    )
+                )
+            }
+            Button(
+                onClick = onLogout,
+                colors = ButtonDefaults.buttonColors(containerColor = DadumBlue),
+                modifier = Modifier.height(48.dp)
+            ) {
+                Text(text = "로그아웃")
+            }
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -120,7 +239,7 @@ class MainActivity : ComponentActivity() {
                 null -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
@@ -133,73 +252,143 @@ class MainActivity : ComponentActivity() {
     fun MainContent(
         authManager: AuthManager,
         onLogoutSuccess: () -> Unit
-    ){
+    ) {
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
+
+        val customFormat = DateTimeFormatter.ofPattern("yy년 MM월 dd일 HH시 mm분 ss초")
+        val currentDate = if (currentTime.isNotEmpty()) currentTime.format(customFormat) else "0"
 
         LaunchedEffect(Unit) {
             healthConnectManager.checkPermissionsAndRun(permissionLauncher)
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "다듬",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold, // 글씨 굵게 설정
-                    color = Color.Blue // 텍스트 색상을 파란색으로 설정
-                ),  // 큰 글씨 스타일 적용
-                modifier = Modifier.padding(bottom = 32.dp) // 하단 여백 추가
-            )
-
-
-            // 걸음수만 표시하는 텍스트 추가
-            Text(text = "걸음수 데이터: ${stepCountData.joinToString(", ")} 보")
-            // 칼로리 소모량만 표시하는 텍스트 추가
-            Text(text = "칼로리 소모량: ${"%.2f".format(dailyCaloriesBurnedRecord)} kcal")
-            // 거리 출력(미터기준)
-            Text(text = "오늘 걸은 거리: ${"%.2f".format(distanceWalkedData)} m")
-            Text(text = "활동 칼로리: ${"%.2f".format(activeCaloriesBurnedData)} kcal")
-            // 수면시간
-            Text(text = "총 수면 시간: ${totalSleepMinutes}분")
-            Text(text = "깊은 수면: ${deepSleepMinutes}분")
-            Text(text = "렘 수면: ${remSleepMinutes}분")
-            Text(text = "얕은 수면: ${lightSleepMinutes}분")
-            Text(text = "심박수: ${if (heartRateBpm.isNotEmpty()) "${heartRateBpm.first().bpm.toInt()} bpm" else "데이터 없음"}")
-            // 전송 시간
-            Text(text="전송 시간: ${currentTime}")
-            Button(onClick = {
-                //헬스커넥트 지원 여부 먼저 확인
-                if(!healthConnectManager.isHealthConnectAvailable()){
-                    Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
-                    Toast.makeText(context, "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.", Toast.LENGTH_LONG).show()
-                    return@Button
-                }
-                // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
-                coroutineScope.launch {
-                    if(healthConnectManager.checkPermissionsAndRun(permissionLauncher)){
-                        fetchAndSend()
-                    } else{
-                        //권한이 없다면 토스트 알림
-                        Toast.makeText(context, "헬스커넥트 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize().background(DadumBackground),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                DadumHeader(
+                    onLogout = {
+                        coroutineScope.launch {
+                            authManager.clearAuthToken()
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "로그아웃 성공!", Toast.LENGTH_SHORT).show()
+                                onLogoutSuccess()
+                            }
+                        }
+                    }
+                )
+                Text(text = currentDate, modifier = Modifier.padding(bottom = 16.dp))
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            HealthDataCard(
+                                title = "심박수",
+                                value = if (heartRateBpm.isNotEmpty()) heartRateBpm.first().bpm.toString() else "0",
+                                unit = "bpm",
+                                valueColor = RedHeart
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "걸음 수",
+                                value = if (stepCountData.isNotEmpty()) stepCountData.joinToString(", ") else "0",
+                                unit = "보",
+                                valueColor = PurpleSteps
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "오늘 걸은 거리",
+                                value = "%.2f".format(dailyCaloriesBurnedRecord),
+                                unit = "m",
+                                valueColor = BlueDistance
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "칼로리",
+                                value = "%.2f".format(dailyCaloriesBurnedRecord),
+                                unit = "kcal",
+                                valueColor = GreenCalorie
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "활동 칼로리",
+                                value = "%.2f".format(activeCaloriesBurnedData),
+                                unit = "kcal",
+                                valueColor = PinkCalorie
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "총 수면 시간",
+                                value = totalSleepMinutes.toString(),
+                                unit = "분",
+                                valueColor = InactiveTabColor
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "깊은 수면 시간",
+                                value = deepSleepMinutes.toString(),
+                                unit = "분",
+                                valueColor = InactiveTabColor
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "얕은 수면 시간",
+                                value = lightSleepMinutes.toString(),
+                                unit = "분",
+                                valueColor = InactiveTabColor
+                            )
+                        }
+                        item {
+                            HealthDataCard(
+                                title = "렘 수면 시간",
+                                value = remSleepMinutes.toString(),
+                                unit = "분",
+                                valueColor = InactiveTabColor
+                            )
+                        }
+                    }
+                    Button(onClick = {
+                        //헬스커넥트 지원 여부 먼저 확인
+                        if (!healthConnectManager.isHealthConnectAvailable()) {
+                            Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
+                            Toast.makeText(
+                                context,
+                                "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+                        // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
+                        coroutineScope.launch {
+                            if (healthConnectManager.checkPermissionsAndRun(permissionLauncher)) {
+                                fetchAndSend()
+                            } else {
+                                //권한이 없다면 토스트 알림
+                                Toast.makeText(context, "헬스커넥트 권한이 필요합니다", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                        }
+                    }, colors = ButtonDefaults.buttonColors(containerColor = DadumBlue),
+                        modifier = Modifier.padding(20.dp)) {
+                        Text(text = "데이터 가져오기 및 서버 전송")
                     }
                 }
-            }) {
-                Text(text = "데이터 가져오기 및 서버 전송")
-            }
-            Button(onClick = {
-                coroutineScope.launch {
-                    authManager.clearAuthToken()
-                    withContext(Dispatchers.Main){
-                        Toast.makeText(context,"로그아웃 성공!", Toast.LENGTH_SHORT).show()
-                        onLogoutSuccess()
-                    }
-                }
-            }, modifier = Modifier.padding(top = 16.dp)) {
-                Text(text = "로그아웃")
             }
         }
     }
@@ -352,19 +541,48 @@ fun Login(
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val DadumBlue = Color(0xFF4285F4)
+    val focusedBlueTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = DadumBlue,
+        unfocusedBorderColor = Color.LightGray
+    )
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 64.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ){
-        Text(text = "로그인", style = MaterialTheme.typography.headlineLarge)
+        Row(
+            modifier = Modifier.padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Image(
+                painter = painterResource(id=R.drawable.ic_dadum_logo),
+                contentDescription = "다듬 로고",
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "다듬",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = DadumBlue
+                )
+            )
+        }
+
+        Text(
+            text = "루틴을 관리하고 자세를 분석해보세요",
+            style = MaterialTheme.typography.bodyLarge.copy( color = Color.Gray),
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
 
         //이메일 입력
         OutlinedTextField(
             value = email,
             onValueChange = {email=it},
             label = {Text("아이디")},
+            colors = focusedBlueTextFieldColors,
             modifier = Modifier.padding(16.dp)
         )
 
@@ -373,6 +591,7 @@ fun Login(
             value = password,
             onValueChange = {password=it},
             label = {Text("비밀번호")},
+            colors = focusedBlueTextFieldColors,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.padding(16.dp)
         )
@@ -420,6 +639,7 @@ fun Login(
                     }
                 }
             },
+            colors = ButtonDefaults.buttonColors(containerColor = DadumBlue),
             modifier = Modifier.padding(top=16.dp),
             enabled = !isLoading
         ) {
