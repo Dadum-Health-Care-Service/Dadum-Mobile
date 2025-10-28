@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -95,14 +96,14 @@ fun HealthDataCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
-            .padding(4.dp),
+            .height(100.dp)
+            .padding(2.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ){
         Column(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(8.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ){
@@ -111,7 +112,7 @@ fun HealthDataCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ){
-                Text(text = title, style = MaterialTheme.typography.bodyLarge.copy(color = Color.Black))
+                Text(text = title, style = MaterialTheme.typography.bodyLarge.copy(color = Color.Black, fontSize = 13.sp))
             }
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -120,7 +121,7 @@ fun HealthDataCard(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         color = valueColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 32.sp
+                        fontSize = 15.sp
                     ),
                     modifier = Modifier.padding(start = 2.dp)
                 )
@@ -128,9 +129,9 @@ fun HealthDataCard(
                     text = unit,
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = Color.Gray,
-                        fontSize = 20.sp
+                        fontSize = 10.sp,
                     ),
-                    modifier = Modifier.padding(8.dp, top = 2.dp)
+                    modifier = Modifier.padding(start = 6.dp)
                 )
             }
         }
@@ -320,10 +321,10 @@ class MainActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
+                            columns = GridCells.Fixed(3),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             item {
                                 HealthDataCard(
@@ -402,16 +403,16 @@ class MainActivity : ComponentActivity() {
                         }
                         Button(
                             onClick = {
-//                                //헬스커넥트 지원 여부 먼저 확인
-//                                if (!healthConnectManager.isHealthConnectAvailable()) {
-//                                    Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
-//                                    Toast.makeText(
-//                                        context,
-//                                        "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.",
-//                                        Toast.LENGTH_LONG
-//                                    ).show()
-//                                    return@Button
-//                                }
+                                //헬스커넥트 지원 여부 먼저 확인
+                                if (!healthConnectManager.isHealthConnectAvailable()) {
+                                    Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
+                                    Toast.makeText(
+                                        context,
+                                        "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    return@Button
+                                }
                                 // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
                                 coroutineScope.launch {
                                     if (healthConnectManager.checkPermissionsAndRun(
@@ -592,6 +593,8 @@ fun Login(
     val DadumBlue = Color(0xFF4285F4)
     val focusedBlueTextFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = DadumBlue,
+        focusedLabelColor = DadumBlue,
+        cursorColor = DadumBlue,
         unfocusedBorderColor = Color.LightGray
     )
 
