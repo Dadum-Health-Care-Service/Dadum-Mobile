@@ -6,8 +6,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
@@ -53,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -88,12 +93,17 @@ fun HealthDataCard(
     valueColor: Color
 ){
     Card(
-        modifier = Modifier.fillMaxWidth().height(90.dp).padding(4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .padding(4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ){
         Column(
-            modifier = Modifier.padding(12.dp).fillMaxSize(),
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ){
             Row(
@@ -130,12 +140,16 @@ fun HealthDataCard(
 @Composable
 fun DadumHeader(onLogout: () -> Unit){
     Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp, top = 30.dp, end = 16.dp, bottom = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -185,7 +199,7 @@ class MainActivity : ComponentActivity() {
     private var remSleepMinutes by mutableStateOf(0L)
     private var lightSleepMinutes by mutableStateOf(0L)
     private var heartRateBpm by mutableStateOf<List<HeartRateData>>(emptyList())
-    private var currentTime by mutableStateOf("데이터 전송 기록 없음")
+    private var currentTime by mutableStateOf("")
 
     private val permissionLauncher =
         registerForActivityResult<Set<String>, Set<String>>(
@@ -207,6 +221,10 @@ class MainActivity : ComponentActivity() {
         Log.d("HEALTH_SYNC", "앱 실행됨")
         healthConnectManager = HealthConnectManager(this)
         authManager = AuthManager(this)
+
+        window.apply {
+            WindowInsetsControllerCompat(this, this.decorView).isAppearanceLightStatusBars=true
+        }
 
         lifecycleScope.launch {
             //앱 시작시 저장된 토큰이 있는지 확인
@@ -257,136 +275,165 @@ class MainActivity : ComponentActivity() {
         val coroutineScope = rememberCoroutineScope()
 
         val customFormat = DateTimeFormatter.ofPattern("yy년 MM월 dd일 HH시 mm분 ss초")
-        val currentDate = if (currentTime.isNotEmpty()) currentTime.format(customFormat) else "0"
+        val currentDate = if (currentTime.isNotEmpty()){
+            try {
+                val parsedTime = ZonedDateTime.parse(currentTime, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                parsedTime.format(customFormat)
+            } catch (e: Exception){
+                Log.d("HEALTH_SYNC","시간 파싱 오류", e)
+            }
+        } else {
+            "데이터 전송 기록 없음"
+        }
 
         LaunchedEffect(Unit) {
             healthConnectManager.checkPermissionsAndRun(permissionLauncher)
         }
 
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
             Column(
-                modifier = Modifier.fillMaxSize().background(DadumBackground),
+                modifier = Modifier.padding(25.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                DadumHeader(
-                    onLogout = {
-                        coroutineScope.launch {
-                            authManager.clearAuthToken()
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "로그아웃 성공!", Toast.LENGTH_SHORT).show()
-                                onLogoutSuccess()
-                            }
-                        }
-                    }
-                )
-                Text(text = currentDate, modifier = Modifier.padding(bottom = 16.dp))
+
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(DadumBackground, RoundedCornerShape(25.dp))
+                        .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        item {
-                            HealthDataCard(
-                                title = "심박수",
-                                value = if (heartRateBpm.isNotEmpty()) heartRateBpm.first().bpm.toString() else "0",
-                                unit = "bpm",
-                                valueColor = RedHeart
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "걸음 수",
-                                value = if (stepCountData.isNotEmpty()) stepCountData.joinToString(", ") else "0",
-                                unit = "보",
-                                valueColor = PurpleSteps
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "오늘 걸은 거리",
-                                value = "%.2f".format(dailyCaloriesBurnedRecord),
-                                unit = "m",
-                                valueColor = BlueDistance
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "칼로리",
-                                value = "%.2f".format(dailyCaloriesBurnedRecord),
-                                unit = "kcal",
-                                valueColor = GreenCalorie
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "활동 칼로리",
-                                value = "%.2f".format(activeCaloriesBurnedData),
-                                unit = "kcal",
-                                valueColor = PinkCalorie
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "총 수면 시간",
-                                value = totalSleepMinutes.toString(),
-                                unit = "분",
-                                valueColor = InactiveTabColor
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "깊은 수면 시간",
-                                value = deepSleepMinutes.toString(),
-                                unit = "분",
-                                valueColor = InactiveTabColor
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "얕은 수면 시간",
-                                value = lightSleepMinutes.toString(),
-                                unit = "분",
-                                valueColor = InactiveTabColor
-                            )
-                        }
-                        item {
-                            HealthDataCard(
-                                title = "렘 수면 시간",
-                                value = remSleepMinutes.toString(),
-                                unit = "분",
-                                valueColor = InactiveTabColor
-                            )
-                        }
-                    }
-                    Button(onClick = {
-                        //헬스커넥트 지원 여부 먼저 확인
-                        if (!healthConnectManager.isHealthConnectAvailable()) {
-                            Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
-                            Toast.makeText(
-                                context,
-                                "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            return@Button
-                        }
-                        // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
-                        coroutineScope.launch {
-                            if (healthConnectManager.checkPermissionsAndRun(permissionLauncher)) {
-                                fetchAndSend()
-                            } else {
-                                //권한이 없다면 토스트 알림
-                                Toast.makeText(context, "헬스커넥트 권한이 필요합니다", Toast.LENGTH_SHORT)
-                                    .show()
+                    DadumHeader(
+                        onLogout = {
+                            coroutineScope.launch {
+                                authManager.clearAuthToken()
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "로그아웃 성공!", Toast.LENGTH_SHORT).show()
+                                    onLogoutSuccess()
+                                }
                             }
                         }
-                    }, colors = ButtonDefaults.buttonColors(containerColor = DadumBlue),
-                        modifier = Modifier.padding(20.dp)) {
-                        Text(text = "데이터 가져오기 및 서버 전송")
+                    )
+                    Text(text = currentDate.toString(), modifier = Modifier.padding(bottom = 16.dp))
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            item {
+                                HealthDataCard(
+                                    title = "심박수",
+                                    value = if (heartRateBpm.isNotEmpty()) heartRateBpm.first().bpm.toString() else "0",
+                                    unit = "bpm",
+                                    valueColor = RedHeart
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "걸음 수",
+                                    value = if (stepCountData.isNotEmpty()) stepCountData.joinToString(
+                                        ", "
+                                    ) else "0",
+                                    unit = "보",
+                                    valueColor = PurpleSteps
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "오늘 걸은 거리",
+                                    value = "%.2f".format(dailyCaloriesBurnedRecord),
+                                    unit = "m",
+                                    valueColor = BlueDistance
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "칼로리",
+                                    value = "%.2f".format(dailyCaloriesBurnedRecord),
+                                    unit = "kcal",
+                                    valueColor = GreenCalorie
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "활동 칼로리",
+                                    value = "%.2f".format(activeCaloriesBurnedData),
+                                    unit = "kcal",
+                                    valueColor = PinkCalorie
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "총 수면 시간",
+                                    value = totalSleepMinutes.toString(),
+                                    unit = "분",
+                                    valueColor = InactiveTabColor
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "깊은 수면 시간",
+                                    value = deepSleepMinutes.toString(),
+                                    unit = "분",
+                                    valueColor = InactiveTabColor
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "얕은 수면 시간",
+                                    value = lightSleepMinutes.toString(),
+                                    unit = "분",
+                                    valueColor = InactiveTabColor
+                                )
+                            }
+                            item {
+                                HealthDataCard(
+                                    title = "렘 수면 시간",
+                                    value = remSleepMinutes.toString(),
+                                    unit = "분",
+                                    valueColor = InactiveTabColor
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
+//                                //헬스커넥트 지원 여부 먼저 확인
+//                                if (!healthConnectManager.isHealthConnectAvailable()) {
+//                                    Log.d("HEALTH_SYNC", "HealthConnect 미지원 기기")
+//                                    Toast.makeText(
+//                                        context,
+//                                        "헬스커넥트 미지원 기기입니다. 데이터 연동이 불가능합니다.",
+//                                        Toast.LENGTH_LONG
+//                                    ).show()
+//                                    return@Button
+//                                }
+                                // 헬스커넥트 지원기기라면, 버튼 클릭 시 권한 다시 확인 후 fetchAndSend() 실행
+                                coroutineScope.launch {
+                                    if (healthConnectManager.checkPermissionsAndRun(
+                                            permissionLauncher
+                                        )
+                                    ) {
+                                        fetchAndSend()
+                                    } else {
+                                        //권한이 없다면 토스트 알림
+                                        Toast.makeText(
+                                            context,
+                                            "헬스커넥트 권한이 필요합니다",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                            .show()
+                                    }
+                                }
+                            }, colors = ButtonDefaults.buttonColors(containerColor = DadumBlue),
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Text(text = "데이터 가져오기 및 서버 전송")
+                        }
                     }
                 }
             }
@@ -453,6 +500,7 @@ class MainActivity : ComponentActivity() {
                 this@MainActivity.remSleepMinutes = remMinutes
                 this@MainActivity.lightSleepMinutes = lightMinutes
                 heartRateBpm = heartRateData
+                currentTime = currentTimeString
             }
 
             Log.d("HEALTH_SYNC", "걸음수 데이터: ${stepData.joinToString(", ")}")
@@ -548,7 +596,9 @@ fun Login(
     )
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 64.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp, vertical = 64.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ){
